@@ -19,10 +19,28 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    # Загружаем и сразу устанавливаем DirectX SDK
+    # Кэшируем DirectX SDK
+    - name: Cache DirectX SDK
+      uses: actions/cache@v4
+      with:
+        path: C:\DXSDK
+        key: dxsdk-${{ runner.os }}
+        restore-keys: |
+          dxsdk-${{ runner.os }}
+
+    # Загружаем и устанавливаем DirectX SDK с таймаутом и логами
     - name: Download and install DirectX SDK
+      timeout-minutes: 10
       run: |
-        powershell -Command "Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe'; Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:\"C:\DXSDK\"' -NoNewWindow -Wait"
+        if not exist "C:\DXSDK" (
+          echo "Starting download of dxsdk.exe..."
+          powershell -Command "Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe' -Verbose"
+          echo "Download complete, starting installation..."
+          Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:\"C:\DXSDK\"' -NoNewWindow -Wait
+          echo "Installation finished."
+        ) else (
+          echo "DirectX SDK already installed, skipping download."
+        )
       shell: cmd
 
     # Настраиваем переменную окружения для DirectX SDK
