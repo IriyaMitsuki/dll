@@ -22,7 +22,7 @@ jobs:
     # Устанавливаем DirectX SDK (загружаем и распаковываем)
     - name: Download and install DirectX SDK
       run: |
-        curl -L -o dxsdk.exe "https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-1A1BB54D85C6/DXSDK_Jun10.exe"
+        curl -L -o dxsdk.exe "https://archive.org/download/dxsdk_2010/DXSDK_Jun10.exe"
         .\dxsdk.exe /quiet /norestart /dir:"C:\DXSDK"
       shell: cmd
 
