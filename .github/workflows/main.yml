@@ -1,0 +1,79 @@
+# Имя нашего рабочего процесса, будет отображаться в GitHub Actions
+name: Build Translator DLL
+
+# Триггеры для запуска:
+# - при push в ветку main
+# - при создании pull request в ветку main
+# - workflow_dispatch позволяет запускать сборку вручную с сайта GitHub
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  # Название задачи
+  build:
+    # Запускаем на виртуальной машине с последней версией Windows
+    runs-on: windows-latest
+
+    steps:
+    # 1. Клонируем репозиторий
+    # Этот шаг скачивает ваш код (translator.cpp, etc.) на виртуальную машину
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. Установка старого DirectX SDK (июнь 2010)
+    # Это КЛЮЧЕВОЙ шаг. В вашем коде используются d3dx9.h и d3dx9.lib, 
+    # которых нет в современных версиях Visual Studio. Этот SDK их содержит.
+    - name: Install legacy DirectX SDK
+      run: |
+        # Скачиваем веб-установщик DirectX SDK
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/A/E/7/AE743F36-632B-4809-87A9-AA1BB3458E31/dxsdk_jun10.exe" -OutFile "dxsdk_jun10.exe"
+        # Запускаем установку в тихом режиме (без окон и диалогов)
+        Start-Process -FilePath ".\dxsdk_jun10.exe" -ArgumentList "/S" -Wait
+      shell: pwsh
+
+    # 3. Настройка окружения для компиляции MSVC x86
+    # Этот шаг добавляет компилятор cl.exe и другие утилиты в PATH,
+    # чтобы мы могли вызывать их из командной строки.
+    # Мы собираем 32-битную (x86) DLL, так как большинство старых игр на DX9 - 32-битные.
+    - name: Add MSVC to PATH
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+
+    # 4. Компиляция DLL
+    # Собираем наш C++ код в DLL файл
+    - name: Compile the DLL
+      run: |
+        # cl.exe - компилятор Microsoft C++
+        # /LD - создать DLL
+        # /nologo - не показывать лого компилятора
+        # /O2 - оптимизация скорости
+        # /MT - использовать статическую рантайм-библиотеку (чтобы не тянуть за собой msvcr*.dll)
+        # /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" - стандартные дефайны для Release DLL
+        # /I"..." - путь к заголовочным файлам DirectX SDK
+        # /link /LIBPATH:"..." - путь к библиотекам (.lib) DirectX SDK
+        # /Fe:translator.dll - имя выходного файла
+        # translator.cpp - наш исходный файл
+        cl.exe /LD /nologo /O2 /MT /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" `
+          /I"C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include" `
+          /link /LIBPATH:"C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86" `
+          /Fe:translator.dll `
+          translator.cpp
+      shell: cmd
+
+    # 5. Загрузка артефакта
+    # Этот шаг берет скомпилированную DLL и файл с переводами 
+    # и запаковывает их в ZIP-архив, который можно будет скачать.
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # Имя артефакта, которое будет видно при скачивании
+        name: translator-release
+        # Файлы, которые нужно включить в архив
+        path: |
+          translator.dll
+          translations.txt
