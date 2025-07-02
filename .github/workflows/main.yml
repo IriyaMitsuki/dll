@@ -34,7 +34,7 @@ jobs:
       run: |
         if (-not (Test-Path "C:\DXSDK")) {
           echo "Starting download of dxsdk.exe..."
-          Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe' -Verbose
+          Invoke-WebRequest -Uri 'https://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe' -Verbose
           echo "Download complete, starting installation..."
           Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:"C:\DXSDK"' -NoNewWindow -Wait
           echo "Installation finished."
