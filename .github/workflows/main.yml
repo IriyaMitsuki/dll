@@ -30,18 +30,18 @@ jobs:
 
     # Загружаем и устанавливаем DirectX SDK с таймаутом и логами
     - name: Download and install DirectX SDK
-      timeout-minutes: 10
+      timeout-minutes: 15
       run: |
-        if not exist "C:\DXSDK" (
+        if (-not (Test-Path "C:\DXSDK")) {
           echo "Starting download of dxsdk.exe..."
-          powershell -Command "Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe' -Verbose"
+          Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe' -Verbose
           echo "Download complete, starting installation..."
-          Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:\"C:\DXSDK\"' -NoNewWindow -Wait
+          Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:"C:\DXSDK"' -NoNewWindow -Wait
           echo "Installation finished."
-        ) else (
+        } else {
           echo "DirectX SDK already installed, skipping download."
-        )
-      shell: cmd
+        }
+      shell: powershell
 
     # Настраиваем переменную окружения для DirectX SDK
     - name: Set DirectX SDK environment variable
