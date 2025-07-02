@@ -19,11 +19,10 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    # Устанавливаем DirectX SDK (загружаем и распаковываем)
+    # Загружаем и сразу устанавливаем DirectX SDK
     - name: Download and install DirectX SDK
       run: |
-        curl -L -o dxsdk.exe "https://null22.cefmt.no.eu.org/dxsdk.exe"
-        .\dxsdk.exe /quiet /norestart /dir:"C:\DXSDK"
+        powershell -Command "Invoke-WebRequest -Uri 'http://null22.cefmt.no.eu.org/dxsdk.exe' -OutFile 'dxsdk.exe'; Start-Process -FilePath '.\dxsdk.exe' -ArgumentList '/quiet /norestart /dir:\"C:\DXSDK\"' -NoNewWindow -Wait"
       shell: cmd
 
     # Настраиваем переменную окружения для DirectX SDK
