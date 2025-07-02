@@ -1,46 +1,43 @@
-# Имя нашего рабочего процесса
-name: Build Translator DLL
+name: Build DirectXHook DLL
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
-    # Запускаем на виртуальной машине с последней версией Windows
     runs-on: windows-latest
 
     steps:
-    # 1. Клонируем репозиторий вместе с нашими файлами SDK
+    # Проверяем код из репозитория
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2. Настройка окружения для компиляции MSVC x86
-    # Этот шаг добавляет компилятор cl.exe и другие утилиты в PATH
-    - name: Add MSVC to PATH
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x86
+    # Устанавливаем MSBuild и Visual Studio Build Tools
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
 
-    # 3. Компиляция DLL с использованием локальных файлов SDK
-    # Мы больше не скачиваем SDK, а указываем компилятору пути к папке /vendor
-    - name: Compile the DLL
+    # Устанавливаем DirectX SDK (загружаем и распаковываем)
+    - name: Download and install DirectX SDK
       run: |
-        cl.exe /LD /nologo /O2 /MT /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" `
-          /I"vendor/dxsdk/Include" `
-          /link /LIBPATH:"vendor/dxsdk/Lib/x86" `
-          /Fe:translator.dll `
-          translator.cpp
+        curl -L -o dxsdk.exe "https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-1A1BB54D85C6/DXSDK_Jun10.exe"
+        .\dxsdk.exe /quiet /norestart /dir:"C:\DXSDK"
       shell: cmd
 
-    # 4. Загрузка артефакта (скомпилированной DLL и файла перевода)
+    # Настраиваем переменную окружения для DirectX SDK
+    - name: Set DirectX SDK environment variable
+      run: echo "DXSDK_DIR=C:\DXSDK\" >> $env:GITHUB_ENV
+      shell: powershell
+
+    # Компилируем проект с помощью MSBuild
+    - name: Build with MSBuild
+      run: msbuild DirectXHook.vcxproj /p:Configuration=Release /p:Platform=Win32 /t:Build
+
+    # Загружаем артефакт (собранную DLL)
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: translator-release
-        path: |
-          translator.dll
-          translations.txt
+        name: DirectXHook-DLL
+        path: Release/DirectXHook.dll
